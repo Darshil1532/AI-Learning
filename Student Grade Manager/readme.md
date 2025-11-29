@@ -83,18 +83,6 @@ Pass Status = grade >= 40 ? "PASS" : "FAIL"
 - Remove button for each entry
 - Responsive design
 
-## 📚 Learning Objectives
-
-This project is ideal for practicing:
-
-- ✅ **DOM Manipulation**: Adding, updating, and removing elements dynamically
-- ✅ **JavaScript Arrays & Objects**: Storing and managing complex data structures
-- ✅ **Event Handling**: Click handlers, form submissions, and input validation
-- ✅ **CSS Styling**: Modern effects like glassmorphism, gradients, and animations
-- ✅ **Data Calculations**: Implementing mathematical operations for statistics
-- ✅ **Responsive Design**: Mobile-friendly interface principles
-- ✅ **State Management**: Managing application data and UI state
-
 ## 🔧 Customization
 
 ### Change the Pass Threshold
@@ -105,19 +93,6 @@ Edit the pass threshold in `script.js`:
 const PASS_THRESHOLD = 40; // Change this value (0-100)
 ```
 
-### Modify Colors
-
-Update CSS variables in `style.css`:
-
-```css
-:root {
-  --primary-color: #6366f1;
-  --success-color: #10b981;
-  --danger-color: #ef4444;
-  /* Add more as needed */
-}
-```
-
 ### Extend Features
 
 - Add **Local Storage** to persist data across browser sessions
@@ -126,9 +101,6 @@ Update CSS variables in `style.css`:
 - Create **Filter Options**: Filter by subject or pass/fail status
 - Add **Search Functionality**: Find students by name
 
-## 📸 Screenshots
-
-*[Add screenshots of your working application here]*
 
 ## 🚦 Getting Started
 
@@ -164,33 +136,11 @@ xdg-open index.html # Linux
 **Q: Styles look broken**
 - A: Clear your browser cache or do a hard refresh (Ctrl+Shift+R).
 
-## 📝 Future Enhancements
-
-- [ ] Backend integration with Node.js/Express
-- [ ] Database storage (MongoDB, Firebase)
-- [ ] User authentication
-- [ ] Multiple class management
-- [ ] Grade history and analytics
-- [ ] Export to PDF or Excel
-- [ ] Dark mode toggle
-- [ ] Mobile app version
-
 ## 📖 Resources
 
 - [MDN Web Docs - JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 - [CSS Tricks - Glassmorphism](https://css-tricks.com/)
 - [JavaScript Arrays](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array)
-
-## 💬 Feedback & Contributions
-
-Have suggestions? Found a bug? Feel free to:
-- Open an issue
-- Submit a pull request
-- Share your improvements!
-
-## 📄 License
-
-This project is open source and available under the MIT License.
 
 ## 👨‍💻 Author
 
