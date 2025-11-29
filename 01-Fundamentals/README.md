@@ -1,7 +1,7 @@
 # AI Fundamentals
 
 ## Overview
-This section is dedicated to learning prompt engineering and creating websites with AI. It provides comprehensive guidance on leveraging artificial intelligence to build web applications effectively.
+This section is dedicated to learning prompt engineering and creating websites with AI. 
 
 ## Topics Covered
 - How to create websites and solve problems with the help of AI
