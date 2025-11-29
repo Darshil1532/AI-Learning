@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeonFlow | Cyber-Glass Typing</title>
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- 1. CORE VARIABLES & RESET --- */
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            
+            --primary: #06b6d4;   /* Cyan */
+            --secondary: #8b5cf6; /* Purple */
+            --accent: #4f46e5;    /* Indigo */
+            
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            
+            --success: #22c55e;
+            --error: #ef4444;
+            --cursor: #facc15;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none; /* Prevent selection for game feel */
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden; /* Canvas handles bg */
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* --- 2. BACKGROUND ANIMATIONS (BLOBS) --- */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            z-index: 0;
+            animation: floatBlob 10s infinite alternate ease-in-out;
+        }
+        .blob-1 { top: 10%; left: 10%; width: 400px; height: 400px; background: var(--primary); animation-delay: 0s; }
+        .blob-2 { bottom: 20%; right: 10%; width: 350px; height: 350px; background: var(--secondary); animation-delay: -2s; }
+        .blob-3 { bottom: 10%; left: 30%; width: 300px; height: 300px; background: var(--accent); animation-delay: -4s; }
+
+        @keyframes floatBlob {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, -50px) scale(1.1); }
+        }
+
+        /* Canvas needs to be above blobs but below UI */
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none; /* Let clicks pass through to UI */
+        }
+
+        /* --- 3. GLASSMORPHISM CONTAINER --- */
+        #app-container {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 1000px;
+            height: 85vh;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: var(--glass-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 4. TYPOGRAPHY & GENERAL UI --- */
+        h1, h2, h3 {
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+
+        button {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+        }
+
+        button:hover {
+            animation: rubberBand 1s; /* Rubberband effect */
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        @keyframes rubberBand {
+            0% { transform: scale3d(1, 1, 1); }
+            30% { transform: scale3d(1.25, 0.75, 1); }
+            40% { transform: scale3d(0.75, 1.25, 1); }
+            50% { transform: scale3d(1.15, 0.85, 1); }
+            65% { transform: scale3d(0.95, 1.05, 1); }
+            75% { transform: scale3d(1.05, 0.95, 1); }
+            100% { transform: scale3d(1, 1, 1); }
+        }
+
+        /* --- 5. SCREENS --- */
+        .screen {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 2rem;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .screen.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Welcome Screen */
+        .input-group {
+            width: 100%;
+            max-width: 600px;
+            margin: 2rem 0;
+            animation: floatUI 4s ease-in-out infinite;
+        }
+
+        textarea#custom-text {
+            width: 100%;
+            height: 150px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem;
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        textarea#custom-text:focus {
+            border-color: var(--primary);
+        }
+
+        /* Game Screen */
+        .game-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+
+        /* Draggable Stats Board */
+        #stats-board {
+            display: flex;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            cursor: grab;
+            position: relative; /* Needed for dragging usually, but we keep it static in flex for now unless dragged */
+        }
+        #stats-board:active {
+            cursor: grabbing;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+        .stat-value { font-weight: 700; font-size: 1.2rem; color: var(--text-main); }
+
+        #text-display-container {
+            position: relative;
+            width: 100%;
+            flex-grow: 1;
+            background: rgba(0,0,0,0.2);
+            border-radius: 16px;
+            padding: 2rem;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 1.5rem;
+            line-height: 1.8;
+            border: 1px solid var(--glass-border);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        /* The actual text rendering */
+        #render-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: 'Outfit', sans-serif; /* Monospace is usually better for code, Outfit is fine for prose */
+        }
+
+        .char {
+            position: relative;
+            transition: color 0.1s;
+        }
+        .char.correct { color: var(--success); text-shadow: 0 0 5px rgba(34, 197, 94, 0.5); }
+        .char.incorrect { color: var(--error); text-decoration: underline; text-shadow: 0 0 5px rgba(239, 68, 68, 0.5); }
+        .char.current { 
+            background-color: var(--glass-bg);
+            border-bottom: 3px solid var(--cursor);
+            animation: pulseCursor 1s infinite;
+        }
+
+        @keyframes pulseCursor {
+            0% { border-color: transparent; }
+            50% { border-color: var(--cursor); }
+            100% { border-color: transparent; }
+        }
+
+        /* Hidden Input for typing logic */
+        #hidden-input {
+            position: absolute;
+            opacity: 0;
+            top: 0;
+            left: 0;
+            height: 0;
+            width: 0;
+        }
+
+        /* Result Screen */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 600px;
+            margin: 2rem 0;
+        }
+        .result-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.3s;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.06);
+        }
+        .result-card h3 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .result-card p { color: var(--text-muted); font-size: 0.9rem; }
+
+        .performance-rating {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        /* Floating Animation */
+        @keyframes floatUI {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    </style>
+</head>
+<body>
+
+    <!-- BACKGROUND LAYERS -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- MAIN APP -->
+    <main id="app-container">
+        
+        <!-- WELCOME SCREEN -->
+        <section id="welcome-screen" class="screen active">
+            <h1>NeonFlow Typing</h1>
+            <p style="color: var(--text-muted); margin-top: 10px;">Test your speed in a cyber-glass environment.</p>
+            
+            <div class="input-group">
+                <textarea id="custom-text" placeholder="Paste your text here, or leave empty for default text..."></textarea>
+            </div>
+            
+            <button id="start-btn">INITIATE SYSTEM</button>
+        </section>
+
+        <!-- GAME SCREEN -->
+        <section id="game-screen" class="screen">
+            <div class="game-header">
+                <div class="logo">NEONFLOW</div>
+                
+                <!-- Draggable Stats -->
+                <div id="stats-board" draggable="true">
+                    <div class="stat-item">
+                        <span class="stat-value" id="live-wpm">0</span>
+                        <span class="stat-label">WPM</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="live-acc">100%</span>
+                        <span class="stat-label">ACC</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="live-time">0:00</span>
+                        <span class="stat-label">TIME</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Focus catcher -->
+            <input type="text" id="hidden-input" autocomplete="off">
+
+            <div id="text-display-container">
+                <div id="render-text"></div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <button id="finish-btn" style="background: rgba(255,255,255,0.1);">TERMINATE</button>
+            </div>
+        </section>
+
+        <!-- RESULT SCREEN -->
+        <section id="result-screen" class="screen">
+            <h2>System Report</h2>
+            <div id="rating-display" class="performance-rating">EXCELLENT</div>
+
+            <div class="result-grid">
+                <div class="result-card">
+                    <h3 id="res-wpm">0</h3>
+                    <p>Words Per Minute</p>
+                </div>
+                <div class="result-card">
+                    <h3 id="res-acc">0%</h3>
+                    <p>Accuracy</p>
+                </div>
+                <div class="result-card">
+                    <h3 id="res-time">0s</h3>
+                    <p>Total Time</p>
+                </div>
+                <div class="result-card">
+                    <h3 id="res-errors">0</h3>
+                    <p>Mistakes</p>
+                </div>
+            </div>
+
+            <button id="restart-btn">REBOOT SYSTEM</button>
+        </section>
+
+    </main>
+
+    <script>
+        /* --- 1. CANVAS & PARTICLES SYSTEM --- */
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor(x, y, type = 'trail') {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+                
+                // Burst logic
+                if (type === 'burst') {
+                    this.speedX = Math.random() * 6 - 3;
+                    this.speedY = Math.random() * 6 - 3;
+                    this.size = Math.random() * 4 + 2;
+                    this.life = 1;
+                    this.decay = 0.02;
+                    this.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+                } else {
+                    // Trail logic
+                    this.life = 1;
+                    this.decay = 0.015;
+                    this.color = 'rgba(255, 255, 255, 0.5)';
+                }
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+                if (this.life < 0) this.life = 0;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                if(this.color.startsWith('hsl')) {
+                   // Add alpha for fading
+                   ctx.globalAlpha = this.life;
+                } else {
+                   ctx.fillStyle = `rgba(255, 255, 255, ${this.life * 0.4})`;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function handleParticles() {
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            handleParticles();
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Mouse Trail
+        window.addEventListener('mousemove', (e) => {
+            particles.push(new Particle(e.x, e.y, 'trail'));
+        });
+
+        // Click Burst
+        window.addEventListener('click', (e) => {
+            for (let i = 0; i < 15; i++) {
+                particles.push(new Particle(e.x, e.y, 'burst'));
+            }
+        });
+
+        /* --- 2. GAME LOGIC --- */
+        
+        // Default text if user leaves input empty
+        const defaultText = "The digital realm is a vast expanse of light and data, constantly shifting like a living organism. In this space, speed is currency and precision is law. We build structures of code that reach into the heavens of cyberspace, creating new realities from nothing but logic and imagination. Stay focused, keep your rhythm, and let the flow guide your fingers.";
+
+        // State Variables
+        let gameState = {
+            text: "",
+            charArray: [],
+            startTime: null,
+            endTime: null,
+            timerInterval: null,
+            errors: 0,
+            typedChars: 0,
+            started: false
+        };
+
+        // DOM Elements
+        const screens = {
+            welcome: document.getElementById('welcome-screen'),
+            game: document.getElementById('game-screen'),
+            result: document.getElementById('result-screen')
+        };
+        const customTextInput = document.getElementById('custom-text');
+        const startBtn = document.getElementById('start-btn');
+        const renderTextDiv = document.getElementById('render-text');
+        const hiddenInput = document.getElementById('hidden-input');
+        const finishBtn = document.getElementById('finish-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        // Stats Elements
+        const liveWpm = document.getElementById('live-wpm');
+        const liveAcc = document.getElementById('live-acc');
+        const liveTime = document.getElementById('live-time');
+        
+        // Result Elements
+        const resWpm = document.getElementById('res-wpm');
+        const resAcc = document.getElementById('res-acc');
+        const resTime = document.getElementById('res-time');
+        const resErrors = document.getElementById('res-errors');
+        const ratingDisplay = document.getElementById('rating-display');
+
+        /* UTILITIES */
+        function switchScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.remove('active'));
+            screens[screenName].classList.add('active');
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s < 10 ? '0' + s : s}`;
+        }
+
+        /* START GAME */
+        startBtn.addEventListener('click', () => {
+            const inputVal = customTextInput.value.trim();
+            gameState.text = inputVal.length > 0 ? inputVal : defaultText;
+            gameState.text = gameState.text.replace(/\s+/g, ' '); // Normalize spaces
+            gameState.charArray = gameState.text.split('');
+            
+            // Render spans
+            renderTextDiv.innerHTML = '';
+            gameState.charArray.forEach(char => {
+                const span = document.createElement('span');
+                span.innerText = char;
+                span.className = 'char';
+                renderTextDiv.appendChild(span);
+            });
+
+            // Reset State
+            gameState.startTime = null;
+            gameState.errors = 0;
+            gameState.typedChars = 0;
+            gameState.started = false;
+            hiddenInput.value = '';
+            
+            // Reset Stats UI
+            liveWpm.innerText = '0';
+            liveAcc.innerText = '100%';
+            liveTime.innerText = '0:00';
+
+            switchScreen('game');
+            
+            // Focus logic
+            setTimeout(() => {
+                hiddenInput.focus();
+                // Set first cursor
+                renderTextDiv.children[0].classList.add('current');
+            }, 100);
+        });
+
+        /* GAME LOOP & TYPING */
+        // Keep focus on hidden input
+        document.getElementById('text-display-container').addEventListener('click', () => {
+            hiddenInput.focus();
+        });
+
+        hiddenInput.addEventListener('input', (e) => {
+            const inputVal = hiddenInput.value;
+            const currentIndex = inputVal.length - 1;
+            const spans = renderTextDiv.querySelectorAll('span');
+
+            // Start Timer on first keypress
+            if (!gameState.started && inputVal.length > 0) {
+                gameState.started = true;
+                gameState.startTime = new Date();
+                gameState.timerInterval = setInterval(updateTimer, 1000);
+            }
+
+            // Handle Backspace (if value length decreased)
+            // Note: input event fires after value change. 
+            // Better logic: Compare input length with current visual state.
+            // But simple way: Re-evaluate everything based on current input value.
+            
+            // Clear all classes first (inefficient but safe for single file logic)
+            // Optimized approach: Loop through all spans, set class based on input
+            
+            gameState.errors = 0; // Recalculate errors dynamically
+            
+            spans.forEach((span, index) => {
+                span.classList.remove('current', 'correct', 'incorrect');
+                
+                if (index < inputVal.length) {
+                    // Character has been typed
+                    if (inputVal[index] === gameState.charArray[index]) {
+                        span.classList.add('correct');
+                    } else {
+                        span.classList.add('incorrect');
+                        gameState.errors++;
+                    }
+                } else if (index === inputVal.length) {
+                    // Current cursor position
+                    span.classList.add('current');
+                }
+            });
+            
+            // Auto-scroll logic
+            if (inputVal.length < spans.length) {
+                const currentEl = spans[inputVal.length];
+                currentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            gameState.typedChars = inputVal.length;
+            updateStats();
+
+            // Check Finish
+            if (inputVal.length >= gameState.charArray.length) {
+                endGame();
+            }
+        });
+
+        function updateTimer() {
+            const now = new Date();
+            const diff = Math.floor((now - gameState.startTime) / 1000);
+            liveTime.innerText = formatTime(diff);
+        }
+
+        function updateStats() {
+            if (!gameState.startTime) return;
+            
+            const now = new Date();
+            const timeInMinutes = (now - gameState.startTime) / 60000;
+            
+            // WPM: (Characters / 5) / Minutes
+            const grossWPM = Math.round((gameState.typedChars / 5) / (timeInMinutes || 1)); // prevent Infinity
+            
+            // Accuracy
+            let accuracy = 100;
+            if (gameState.typedChars > 0) {
+                accuracy = Math.round(((gameState.typedChars - gameState.errors) / gameState.typedChars) * 100);
+            }
+
+            liveWpm.innerText = grossWPM;
+            liveAcc.innerText = accuracy + '%';
+        }
+
+        /* END GAME */
+        function endGame() {
+            clearInterval(gameState.timerInterval);
+            gameState.endTime = new Date();
+            
+            const totalTimeSec = Math.floor((gameState.endTime - gameState.startTime) / 1000) || 1;
+            const timeInMinutes = totalTimeSec / 60;
+            const wpm = parseInt(liveWpm.innerText);
+            const acc = parseInt(liveAcc.innerText.replace('%', ''));
+
+            // Populate Result Screen
+            resWpm.innerText = wpm;
+            resAcc.innerText = acc + '%';
+            resTime.innerText = formatTime(totalTimeSec);
+            resErrors.innerText = gameState.errors;
+
+            // Rating System
+            let rating = "AVERAGE";
+            let color = "#fbbf24"; // yellow
+
+            if (wpm > 60 && acc > 95) { rating = "EXCELLENT"; color = "#22c55e"; }
+            else if (wpm > 40 && acc > 90) { rating = "GOOD"; color = "#06b6d4"; }
+            else if (wpm < 20 || acc < 80) { rating = "POOR"; color = "#ef4444"; }
+
+            ratingDisplay.innerText = rating;
+            ratingDisplay.style.color = color;
+
+            switchScreen('result');
+            
+            // Burst Effect on Result
+            const rect = ratingDisplay.getBoundingClientRect();
+            for(let i=0; i<30; i++) {
+                particles.push(new Particle(rect.left + rect.width/2, rect.top + rect.height/2, 'burst'));
+            }
+        }
+
+        finishBtn.addEventListener('click', endGame);
+        restartBtn.addEventListener('click', () => switchScreen('welcome'));
+
+
+        /* --- 3. DRAG AND DROP (STATS BOARD) --- */
+        const statsBoard = document.getElementById('stats-board');
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        // Use standard Drag API or Mouse Events. 
+        // Standard Drag API has 'ghost image' which might not look cool.
+        // Let's use Mouse Events for smooth transformation.
+        
+        statsBoard.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            statsBoard.style.cursor = 'grabbing';
+            
+            // Calculate offset
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            const rect = statsBoard.getBoundingClientRect();
+            // Since it's currently static/flex, we need to make it absolute to move it freely
+            // or use transform. Transform is smoother.
+            // However, to drag it *anywhere*, absolute positioning relative to container is best.
+            
+            // Initialize position if not set
+            if (!statsBoard.style.position || statsBoard.style.position === 'static') {
+                statsBoard.style.position = 'absolute';
+                statsBoard.style.left = (rect.left - document.getElementById('game-screen').getBoundingClientRect().left) + 'px';
+                statsBoard.style.top = (rect.top - document.getElementById('game-screen').getBoundingClientRect().top) + 'px';
+                statsBoard.style.right = 'auto'; // clear flex styles
+            }
+            
+            initialLeft = parseFloat(statsBoard.style.left);
+            initialTop = parseFloat(statsBoard.style.top);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            statsBoard.style.left = `${initialLeft + dx}px`;
+            statsBoard.style.top = `${initialTop + dy}px`;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            statsBoard.style.cursor = 'grab';
+        });
+
+    </script>
+</body>
+</html>
