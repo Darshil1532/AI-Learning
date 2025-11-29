@@ -1,4 +1,4 @@
-# 🔮 NeonFlow
+# 🔮 Typing tester
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)
 ![No Dependencies](https://img.shields.io/badge/Dependencies-None-green)
