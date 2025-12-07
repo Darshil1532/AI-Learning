@@ -1,5 +1,8 @@
 # Grade Nexus – Student Grade Manager
 
+***link for the better verson of this is*** :-
+https://darshil-jha-student-manager6543.netlify.app/auth.html
+
 A modern, interactive web application for managing student grades with a sleek glassmorphism UI. Grade Nexus makes it easy to track class performance with real-time calculations and instant visual feedback.
 
 ## 🎯 Features
